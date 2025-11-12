@@ -1,0 +1,228 @@
+/* ===== SIDE BAR ===== */
+
+.sidebar h2 {
+  font-size: 1.4rem;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #00adb5;
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar ul li {
+  margin: 15px 0;
+}
+
+.sidebar ul li a {
+  text-decoration: none;
+  color: #dcdde1;
+  font-size: 1rem;
+  display: block;
+  padding: 10px 15px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li a.active {
+  background-color: #00adb5;
+  color: #fff;
+}
+
+/* --- Landlord Dashboard Layout --- */
+.landlord-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+
+.dashboard-section h2 {
+  color: #0077cc;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dashboard-table th, .dashboard-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.dashboard-table th {
+  background: #f5f7fa;
+  color: #333;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+  color: #fff;
+}
+
+.badge.active { background: #28a745; }
+.badge.expiring { background: #ffc107; color: #000; border: 1px solid #e0b200; }
+.badge.expired { background: #dc3545; }
+ 
+/* --- Topbar --- */
+.topbar {
+  background: #0077cc;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 1.2rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.topbar .profile-icon {
+  font-size: 1.6rem;
+  cursor: pointer;
+  margin-right: 1rem;
+}
+
+.topbar .app-title {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -260px;           /* hidden by default */
+  width: 260px;
+  height: 100%;
+  background: #0a2e52;
+  color: white;
+  transition: left 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding-top: 1rem;
+}
+
+.sidebar.active {
+  left: 0;                /* slides in */
+}
+
+.sidebar-header {
+  text-align: center;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.sidebar-header p {
+  font-size: 0.9rem;
+  color: #a3c0de;
+  margin: 0.2rem 0;
+}
+
+.close-btn {
+  position: absolute;
+  right: 15px;
+  top: 5px;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu li {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-menu a {
+  display: block;
+  padding: 0.8rem 1.2rem;
+  color: white;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.sidebar-menu a:hover {
+  background: #145da0;
+}
+
+/* --- Adjust main content when sidebar visible --- */
+.content {
+  margin-left: 0;
+  transition: margin-left 0.3s ease;
+}
+
+.sidebar.active ~ .content {
+  margin-left: 260px;
+}
+
+/* --- Financial Overview --- */
+
+.finance-summary {
+  display: flex;
+  justify-content: space-around;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.finance-item {
+  text-align: center;
+}
+
+.finance-item h4 {
+  color: #0077cc;
+  margin-bottom: 0.4rem;
+}
+
+.finance-item p {
+  font-size: 1.4rem;
+  color: #222;
+  margin: 0;
+}
+
+/*====== Error Message in Login page ====== */
+
+.error-box {
+  background: #ffe6e6;
+  border: 1px solid #ffb3b3;
+  color: #cc0000;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.error-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.error-text {
+  line-height: 1.2;
+}
