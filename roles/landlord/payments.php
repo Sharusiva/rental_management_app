@@ -139,7 +139,7 @@ $result = $stmt->get_result();
 <body>
   <div class="content">
     <h2>💰 Payment Management
-      <a href="../../../dashboard.php" class="back-btn">⬅ Back to Dashboard</a>
+      <a href="../../dashboard.php" class="back-btn">⬅ Back to Dashboard</a>
     </h2>
 
     <table>
