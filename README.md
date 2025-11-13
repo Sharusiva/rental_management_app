@@ -15,3 +15,26 @@ sudo systemctl status mysql
 
 mysql -u (MysqlUsername) -p -h (ServerIP) (Sql project name)
 
+
+
+RENTAL_MANAGEMENT_APP/
+├── assets/
+│   └── style.css
+├── includes/
+│   ├── auth.php
+│   └── db.php
+├── roles/
+│   ├── landlord/
+│   │   ├── calender.php
+│   │   ├── landlord_dashboard.php
+│   │   ├── payments.php
+│   │   └── register_property.php
+│   ├── staff/
+│   └── tenant/
+│       └── requests.php
+├── dashboard.php
+├── fix_hashes.php
+├── index.php
+├── README.md
+├── register.php
+└── test_db.php

@@ -85,6 +85,9 @@
   align-items: center;
   padding: 0.8rem 1.2rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  
+  /* ADDED: This makes the topbar animate */
+  transition: margin-left 0.3s ease;
 }
 
 .topbar .profile-icon {
@@ -102,7 +105,7 @@
 .sidebar {
   position: fixed;
   top: 0;
-  left: -260px;           /* hidden by default */
+  left: -260px;      /* hidden by default */
   width: 260px;
   height: 100%;
   background: #0a2e52;
@@ -114,8 +117,9 @@
   padding-top: 1rem;
 }
 
-.sidebar.active {
-  left: 0;                /* slides in */
+/* CHANGED: This now targets the body class */
+body.sidebar-active .sidebar {
+  left: 0;          /* slides in */
 }
 
 .sidebar-header {
@@ -171,7 +175,9 @@
   transition: margin-left 0.3s ease;
 }
 
-.sidebar.active ~ .content {
+/* CHANGED: This rule now moves BOTH the topbar and content */
+body.sidebar-active .topbar,
+body.sidebar-active .content {
   margin-left: 260px;
 }
 
@@ -226,3 +232,22 @@
 .error-text {
   line-height: 1.2;
 }
+
+/*CSS for Return Button */ 
+
+.btn-return {
+  display: inline-block;
+  padding: 8px 15px;
+  margin-bottom: 1rem;
+  background-color: #0077cc;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.btn-return:hover {
+  background-color: #005fa3;
+}
+
