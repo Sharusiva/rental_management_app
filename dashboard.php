@@ -44,6 +44,8 @@ $role = $_SESSION['role'];
       <li><a href="roles/landlord/calender.php">My Calender</a></li>
       <li><a href="roles/landlord/payments.php">Payments</a></li>
       <li><a href="roles/landlord/register_property.php">Register a Property</a></li>
+      <li><a href="roles/landlord/landlord_map.php">Find Your Properties</a></li>
+
     <?php elseif ($role == 'tenant'): ?>
       <li><a href="roles/tenant/my_lease.php">My Lease</a></li>
       <li><a href="roles/tenant/requests.php"> Make a request</a></li>
