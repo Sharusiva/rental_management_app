@@ -3,6 +3,8 @@ $landlordEmail = $_SESSION['user_email'] ?? null;
 $userName = $_SESSION['user_name'];
 ?>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <div class="welcome-banner">
     <h2>Welcome, <?php echo htmlspecialchars($userName); ?>!</h2>
     <p>Here is an overview of your properties, payments, and tenant requests.</p>
@@ -47,11 +49,23 @@ $userName = $_SESSION['user_name'];
 </section>
 
 <!-- ==========================================================================================
-    PROPERTY OVERVIEW (Landlord → Property → Tenants)
+    PROPERTY OVERVIEW 
 =========================================================================================== -->
-<section class="dashboard-section">
+    <section class="dashboard-section">
     <h2>Property Overview</h2>
-
+   <div class = overview-row>
+    <!-- Stacked bar chart for weekly earnings vs maintenance costs --!>
+    <div style="max-width: 700px; margin-bottom: 20px;">
+        <canvas id="propertyEarningsChart"></canvas>
+    </div>
+    <! -- AI chat to ask about property related queries -- !>
+     <div id="ai-chatbot-container">
+    	<div id="ai-chat">
+         <div id="ai-chat-log"></div>
+         <input id="ai-chat-input" placeholder="Ask about your properties..." />
+        </div>
+     </div>
+    </div>
     <?php
     $properties = [];
 
@@ -198,3 +212,101 @@ $userName = $_SESSION['user_name'];
         </tbody>
     </table>
 </section>
+<!-- Script to render the stacked bar chart --!>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    fetch('roles/landlord/api_property_weekly_summary.php')
+        .then(response => response.json())
+        .then(rows => {
+
+            console.log("CHART DATA:", rows); // DEBUG
+
+            // Canvas must exist
+            const ctx = document.getElementById('propertyEarningsChart');
+            if (!ctx) {
+                console.error("Canvas not found!");
+                return;
+            }
+
+            const labels = rows.map(r => r.address);
+            const incomeData = rows.map(r => r.income_week);
+            const maintenanceData = rows.map(r => r.maintenance_week);
+	    const net = rows.map (r => r.income_week - r.maintenance_week);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Net Profit',
+                            data: net,
+                            backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                            stack: 'stack1'
+                        },
+                        {
+                            label: 'Cost',
+                            data: maintenanceData,
+                            backgroundColor: 'rgba(244, 67, 54, 0.3)',
+                            stack: 'stack1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Net Profit per Property'
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true }
+                    }
+                }
+            });
+
+        })
+        .catch(err => {
+            console.error("Error loading chart data:", err);
+        });
+
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const input = document.getElementById("ai-chat-input");
+    const log = document.getElementById("ai-chat-log");
+
+    if (!input) {
+        console.error("Chat input not found!");
+        return;
+    }
+
+    input.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" && this.value.trim() !== "") {
+
+            const message = this.value.trim();
+            this.value = "";
+
+            // Display user message
+            log.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
+
+            fetch("roles/landlord/ai_chat.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message })
+            })
+            .then(res => res.json())
+            .then(data => {
+                log.innerHTML += `<div><strong>AI:</strong> ${data.reply}</div>`;
+                log.scrollTop = log.scrollHeight;
+            });
+        }
+    });
+});
+</script>

@@ -1,0 +1,5 @@
+# Ignore environment folder and files
+env/
+env/*
+/env
+/env/*
