@@ -50,6 +50,8 @@ $role = $_SESSION['role'];
       <li><a href="roles/tenant/requests.php">Make a request</a></li>
       <li><a href="roles/tenant/payments.php">Payments</a></li>
       <li><a href="roles/tenant/t_calendar.php">My Calendar</a></li>
+      <li><a href="roles/tenant/view_lease.php">View My Lease</a></li>
+
 
     <?php elseif ($role == 'staff'): ?>
       <li><a href="roles/staff/staff_contactinfo.php">Contact Info</a></li>

@@ -113,9 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 
-// 7. --- GET TASK DETAILS (Load page) ---
-// We use the new LandlordMaintenanceView to get all the data in one go
-// Security Check: Select the task ONLY if it matches the logged-in StaffID
+
 $stmt_select = $conn->prepare("
     SELECT 
         Issue, request_date, Cost, current_status,
@@ -131,12 +129,10 @@ $task = $result->fetch_assoc();
 $stmt_select->close();
 
 if (!$task) {
-    // If $task is empty, it's either the wrong ID or not assigned to this staff member
     die("Error: Task #$requestNum not found or it is not assigned to you.");
 }
 
-// (NEW) If the form was just submitted, the $task array is now stale.
-// Let's update it with the new values to show the user the changes immediately.
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
     $task['current_status'] = $new_status;
     $task['Cost'] = $cost_to_save;
@@ -149,7 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Task #<?php echo $requestNum; ?></title>
     
-    <!-- CSS for this page ONLY -->
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -204,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            box-sizing: border-box; /* Important */
+            box-sizing: border-box; 
         }
         .form-group textarea {
              width: 100%;
@@ -216,7 +211,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
              background: #f9f9f9;
              font-family: inherit;
         }
-        /* (NEW) Style for the read-only issue box */
         .issue-box {
              background: #f9f9f9;
              border: 1px solid #eee;
@@ -269,7 +263,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
 <body>
 
     <div class="container">
-        <!-- Link to go back to the main dashboard -->
         <a href="../../dashboard.php" class="back-link"> Back to Dashboard</a>
 
         <h2>Manage Maintenance Task #<?php echo $requestNum; ?></h2>
@@ -278,7 +271,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
             <div class="message <?php echo $message_type; ?>"><?php echo $message; ?></div>
         <?php endif; ?>
 
-        <!-- 1. READ-ONLY TASK DETAILS -->
         <div class="task-info">
             <h3>Task Details</h3>
             <p><strong>Tenant:</strong> <?php echo htmlspecialchars($task['tenant_name']); ?></p>
@@ -286,24 +278,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
             <p><strong>Address:</strong> <?php echo htmlspecialchars($task['property_address'] . ', ' . $task['property_city']); ?></p>
             <p><strong>Reported:</strong> <?php echo htmlspecialchars($task['request_date']); ?></p>
             <p><strong>Issue:</strong></p>
-            <!-- (CHANGED) Replaced <textarea> with a styled <div> -->
             <div class="issue-box">
-                <?php echo nl2br(htmlspecialchars($task['Issue'])); // nl2br preserves line breaks ?>
+                <?php echo nl2br(htmlspecialchars($task['Issue']));  ?>
             </div>
         </div>
 
-        <!-- 2. UPDATE FORM -->
-        <!-- (FIX 2: The action attribute MUST be blank to prevent the 404) -->
+
         <form method="POST" action="">
             
-            <!-- (FIX 3: This hidden field is NOW CRITICAL) -->
-            <!-- It passes the request_num during the POST submit -->
             <input type="hidden" name="request_num" value="<?php echo $requestNum; ?>">
 
             <div class="form-group">
                 <label for="status">Update Status</label>
                 <select name="status" id="status">
-                    <!-- Pre-select the current status -->
                     <option value="Pending" <?php if($task['current_status'] == 'Pending') echo 'selected'; ?>>Pending</option>
                     <option value="In Progress" <?php if($task['current_status'] == 'In Progress') echo 'selected'; ?>>In Progress</option>
                     <option value="Completed" <?php if($task['current_status'] == 'Completed') echo 'selected'; ?>>Completed</option>
@@ -313,7 +300,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
 
             <div class="form-group">
                 <label for="cost">Update Cost (e.g., 50.00)</label>
-                <!-- Pre-fill the current cost -->
                 <input type="number" step="0.01" min="0" name="cost" id="cost" value="<?php echo htmlspecialchars($task['Cost']); ?>" placeholder="0.00">
             </div>
 
