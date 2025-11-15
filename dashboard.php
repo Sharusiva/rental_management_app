@@ -53,6 +53,7 @@ $role = $_SESSION['role'];
 
     <?php elseif ($role == 'staff'): ?>
       <li><a href="roles/staff/staff_contactinfo.php">Contact Info</a></li>
+      <li><a href="roles/staff/selectTask.php">Select a Unassigned Task</a></li>
     <?php endif; ?>
     <li><a href="index.php">Logout</a></li>
   </ul>

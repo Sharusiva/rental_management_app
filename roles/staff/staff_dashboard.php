@@ -6,7 +6,7 @@ $staffEmail = $_SESSION['user_email'] ?? null;
 $requests = [];
 
 if ($staffEmail) {
-    // We can use the SAME view, just filter by the staff_email!
+    // This query uses the (now fixed) LandlordMaintenanceView
     $stmt = $conn->prepare("
         SELECT * FROM LandlordMaintenanceView
         WHERE staff_email = ?
@@ -37,6 +37,7 @@ if ($staffEmail) {
         <th>Date Reported</th>
         <th>Issue</th>
         <th>Status</th>
+        <th>Action</th> <!-- NEW COLUMN -->
       </tr>
     </thead>
     <tbody>
@@ -46,12 +47,19 @@ if ($staffEmail) {
         <td><?php echo htmlspecialchars($r['property_address']); ?></td>
         <td><?php echo htmlspecialchars($r['tenant_name']); ?></td>
         <td><?php echo htmlspecialchars($r['request_date']); ?></td>
-        <td><?php echo htmlspecialchars($r['issue']); ?></td>
-        <td><?php echo htmlspecialchars($r['status']); ?></td>
+        <td><?php echo htmlspecialchars($r['Issue']); ?></td>
+        <td><?php echo htmlspecialchars($r['current_status']); ?></td>
+        <td>
+          <!-- NEW LINK to your manage_task.php page -->
+          <a href="roles/staff/updateTask.php?request_num=<?php echo $r['RequestNUM']; ?>" class="action-link">
+            Manage
+          </a>
+        </td>
       </tr>
       <?php endforeach; ?>
   <?php else: ?>
-      <tr><td colspan="5">You have no assigned tasks.</td></tr>
+      <!-- Updated to 6 columns -->
+      <tr><td colspan="6">You have no assigned tasks.</td></tr>
   <?php endif; ?>
     </tbody>
   </table>
