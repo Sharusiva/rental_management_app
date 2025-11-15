@@ -1,98 +1,106 @@
 <?php
 session_start();
-session_unset();           // remove all previous session variables
-session_regenerate_id(true); // generate a new session ID to avoid collisions
-
 include('includes/db.php');
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$error = "";   // <-- REQUIRED to avoid undefined variable warning
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $email = $_POST['email'];
     $password = $_POST['password'];
     $role = $_POST['role'];
 
-    // Fetch from Users
+    // Lookup user
     $stmt = $conn->prepare("SELECT * FROM Users WHERE Email = ? AND Role = ?");
     $stmt->bind_param("ss", $email, $role);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $res = $stmt->get_result();
 
-    if ($result->num_rows === 1) {
-        $user = $result->fetch_assoc();
+    if ($res->num_rows === 1) {
+        $user = $res->fetch_assoc();
 
         if (password_verify($password, $user['PasswordHash'])) {
-            // Valid login — fetch the user's name based on role
+
+            $_SESSION['user_email'] = $user['Email'];
+            $_SESSION['role']       = $user['Role'];
+            $_SESSION['user_id']    = $user['UserID'];
+
+            // get role-specific name
             switch ($role) {
                 case 'tenant':
-                    $q = $conn->prepare("SELECT Name FROM Tenants WHERE email = ?");
+                    $q = $conn->prepare("SELECT Name FROM Tenants WHERE UserID = ?");
                     break;
                 case 'landlord':
-                    $q = $conn->prepare("SELECT Name FROM Landlord WHERE Email = ?");
+                    $q = $conn->prepare("SELECT Name FROM Landlord WHERE UserID = ?");
                     break;
                 case 'staff':
-                    $q = $conn->prepare("SELECT Name FROM Staff WHERE ContactInfo = ?");
-                    break;
-                case 'admin':
-                    $_SESSION['user_name'] = 'Admin';
+                    $q = $conn->prepare("SELECT Name FROM Staff WHERE UserID = ?");
                     break;
             }
 
-            if ($role !== 'admin') {
-                $q->bind_param("s", $email);
-                $q->execute();
-                $res = $q->get_result();
-                $row = $res->fetch_assoc();
-                $_SESSION['user_name'] = $row['Name'];
-            }
+            $q->bind_param("i", $user['UserID']);
+            $q->execute();
 
-            // Store session info
-            $_SESSION['user_email'] = $email;
-            $_SESSION['role'] = $role;
-            $_SESSION['user_id'] = $user['UserID'];
+            $name = $q->get_result()->fetch_assoc()['Name'] ?? "User";
+            $_SESSION['user_name'] = $name;
 
             header("Location: dashboard.php");
             exit;
+
         } else {
-            $error_message =  " Invalid password";
+            $error = "Incorrect password.";
         }
+
     } else {
-        $error_message = " No user found with that email/role combination";
+        $error = "No account found with that email + role.";
     }
 }
 ?>
 
+
 <!DOCTYPE html>
-<link rel="stylesheet" href="assets/login.css">
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Login</title>
+    <title>Login</title>
+    <link rel="stylesheet" href="assets/login.css">
 </head>
+
 <body>
-  <div class="login-box">
-    <h2>Rental Management Portal </h2>
+
+<div class="login-box">
+
+    <h2>Rental Management Portal</h2>
+
+    <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($error)): ?>
+    <div class="error-box"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
     <form method="POST">
-      <?php if  (!empty($error_message)): ?>
-	<p style="color:red; font-weight:bold; text-align:center; margin-bottom:10px;">
-        <?= htmlspecialchars($error_message) ?>
-        </p>
-      <?php endif; ?>
-      <label>Email:</label>
-      <input type="email" name="email" required>
-      <label>Password:</label>
-      <input type="password" name="password" required>
-      <label>Role:</label>
-      <select name="role" required>
-        <option value="admin">Admin</option>
-        <option value="landlord">Landlord</option>
-        <option value="tenant">Tenant</option>
-        <option value="staff">Staff</option>
-      </select>
-      <input type="submit" value="Login">
-      <p class="register-text">
-        Don't have an account?
-        <a href="register.php">Sign up here</a>
-    </p>
+
+        <label>Email:</label>
+        <input type="email" name="email" required>
+
+        <label>Password:</label>
+        <input type="password" name="password" required>
+
+        <label>Role:</label>
+        <select name="role" required>
+            <option value="" disabled selected>Select Role…</option>
+            <option value="tenant">Tenant</option>
+            <option value="landlord">Landlord</option>
+            <option value="staff">Staff</option>
+        </select>
+
+        <input type="submit" value="Login">
+
     </form>
-  </div>
+
+    <div class="register-link">
+        Don’t have an account?
+        <a href="register.php">Sign up here</a>
+    </div>
+
+</div>
+
 </body>
 </html>

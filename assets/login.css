@@ -1,75 +1,95 @@
- body { 
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        height:100vh;
-        background:#f5f7fa;              /* matches dashboard background */
-        font-family:Arial;
-    }
+/* ========= Center Page ========= */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #f1f5f9;
+    font-family: Arial, sans-serif;
+}
 
-    .login-box { 
-        background:#ffffff;
-        padding:35px 40px;
-        border-radius:12px;
-        box-shadow:0 4px 14px rgba(0,0,0,0.12); /* softer professional shadow */
-        width:330px;
-        border-top:5px solid #0077cc;     /* adds nice accent bar */
-    }
+/* ========= Box Container ========= */
+.login-box {
+    background: #ffffff;
+    padding: 35px 45px;
+    border-radius: 12px;
+    width: 380px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border-top: 6px solid #0077cc;
+}
 
-    h2 { 
-        text-align:center;
-        margin-bottom:22px;
-        color:#0077cc;                     /* same blue as dashboard titles */
-        font-weight:600;
-    }
+/* ========= Title ========= */
+.login-box h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #0077cc;
+    font-size: 22px;
+}
 
-    input, select { 
-        width:100%;
-        padding:12px;
-        margin:10px 0;
-        border:1px solid #bfcfff;
-        border-radius:8px;
-        font-size:15px;
-        background:#ffffff;
-        transition:0.2s;
-    }
+/* ========= Labels ========= */
+.login-box label {
+    display: block;
+    font-size: 13px;
+    color: #4a5568;
+    font-weight: 600;
+    margin-bottom: 6px;
+    margin-top: 14px;
+}
 
-    input:focus {
-        border-color:#6a8aff;
-        box-shadow:0 0 4px rgba(106,138,255,0.4);
-        outline:none;
-    }
+/* ========= Input Fields (ALL TYPES) ========= */
+.login-box input[type="email"],
+.login-box input[type="password"],
+.login-box input[type="text"],       /* <-- FIXED: Full Name field */
+.login-box input[type="number"],
+.login-box select {
+    width: 100%;
+    padding: 10px 12px;
+    margin-top: 2px;
+    border: 1px solid #cdd8f3;
+    border-radius: 6px;
+    font-size: 14px;
+    background: #ffffff;
+}
 
-    input[type=submit] { 
-        background:#0077cc;                /* primary button blue */
-        color:#fff;
-        border:none;
-        cursor:pointer;
-        font-size:15px;
-        padding:12px;
-        border-radius:8px;
-        margin-top:5px;
-        transition:0.2s;
-    }
+/* ========= Submit ========= */
+.login-box input[type="submit"] {
+    margin-top: 18px;
+    width: 100%;
+    padding: 11px;
+    background: #0077cc;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+}
 
-    input[type=submit]:hover { 
-        background:#005fa3;                /* darker hover */
-    }
+.login-box input[type="submit"]:hover {
+    background: #005fa3;
+}
 
-    /* Register link */
-    .register-text {
-        text-align:center;
-        margin-top:12px;
-        font-size:14px;
-        color:#0a2e52;
-    }
+/* ========= Link ========= */
+.register-link {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+}
 
-    .register-text a {
-        color:#0077cc;
-        font-weight:bold;
-        text-decoration:none;
-    }
+.register-link a {
+    color: #0077cc;
+    font-weight: bold;
+    text-decoration: none;
+}
 
-    .register-text a:hover {
-        text-decoration:underline;
-    }
+/* ========= Success Message ========= */
+.success-box {
+    background: #e7ffe7;
+    border: 1px solid #7ed67e;
+    color: #2e7d32;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 14px;
+}
