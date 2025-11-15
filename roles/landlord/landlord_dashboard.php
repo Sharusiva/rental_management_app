@@ -4,6 +4,8 @@ $userName      = $_SESSION['user_name'] ?? "Landlord";
 ?>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="../../assets/style.css">
+
 
 <div class="welcome-banner">
     <h2>Welcome, <?php echo htmlspecialchars($userName); ?>!</h2>
@@ -58,12 +60,12 @@ if ($landlordEmail) {
 
     <div class="overview-row">
 
-        <!-- Chart -->
-        <div style="max-width: 700px; margin-bottom: 20px;">
+        <!-- LEFT: Chart -->
+        <div class="chart-wrapper">
             <canvas id="propertyEarningsChart"></canvas>
         </div>
 
-        <!-- Chatbot -->
+        <!-- RIGHT: Chatbot -->
         <div id="ai-chatbot-container">
             <div id="ai-chat">
                 <div id="ai-chat-log"></div>
@@ -71,7 +73,10 @@ if ($landlordEmail) {
             </div>
         </div>
 
-    </div>
+    </div> <!-- END overview-row -->
+
+</section>
+
 
 <?php
 $properties = [];
@@ -270,7 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const msg = input.value.trim();
             input.value = "";
-            log.innerHTML += `<div><strong>You:</strong> ${msg}</div>`;
+            log.innerHTML += `<div class="user-msg">${msg}</div>`;
 
             fetch("roles/landlord/ai_chat.php", {
                 method:"POST",
@@ -279,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
             })
             .then(r => r.json())
             .then(d => {
-                log.innerHTML += `<div><strong>AI:</strong> ${d.reply}</div>`;
+                log.innerHTML += `<div class="ai-msg">${d.reply}</div>`;
                 log.scrollTop = log.scrollHeight;
             });
         }
