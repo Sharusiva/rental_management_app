@@ -61,23 +61,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 <!DOCTYPE html>
+<link rel="stylesheet" href="assets/login.css">
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Login</title>
-  <link rel="stylesheet" href="assets/style.css">
-  <style>
-    body { display:flex;justify-content:center;align-items:center;height:100vh;background:#f4f4f4;font-family:Arial;}
-    .login-box { background:#fff;padding:30px 40px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);width:320px; }
-    h2 { text-align:center;margin-bottom:20px;color:#333; }
-    input, select { width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:5px; }
-    input[type=submit] { background:#00adb5;color:#fff;border:none;cursor:pointer; }
-    input[type=submit]:hover { background:#007a7f; }
-  </style>
 </head>
 <body>
   <div class="login-box">
-    <h2>Rental System Login</h2>
+    <h2>Rental Management Portal </h2>
     <form method="POST">
       <?php if  (!empty($error_message)): ?>
 	<p style="color:red; font-weight:bold; text-align:center; margin-bottom:10px;">
@@ -96,6 +88,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <option value="staff">Staff</option>
       </select>
       <input type="submit" value="Login">
+      <p class="register-text">
+        Don't have an account?
+        <a href="register.php">Sign up here</a>
+    </p>
     </form>
   </div>
 </body>
