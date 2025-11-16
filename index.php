@@ -11,48 +11,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $role = $_POST['role'];
 
     // Lookup user
-    $stmt = $conn->prepare("SELECT * FROM Users WHERE Email = ? AND Role = ?");
-    $stmt->bind_param("ss", $email, $role);
+    $stmt = $conn->prepare("SELECT * FROM Users WHERE Email = ?");
+    $stmt->bind_param("s", $email);
     $stmt->execute();
     $res = $stmt->get_result();
 
     if ($res->num_rows === 1) {
         $user = $res->fetch_assoc();
+        $dbrole = $user['Role'];
 
         if (password_verify($password, $user['PasswordHash'])) {
+            
+            //Admin Override
+            if ($dbrole === 'admin') {
+                $_SESSION['user_email'] = $user['Email'];
+                $_SESSION['role']       = 'admin';
+                $_SESSION['user_id']    = $user['UserID'];
+                $_SESSION['user_name']  = "Administrator";
 
-            $_SESSION['user_email'] = $user['Email'];
-            $_SESSION['role']       = $user['Role'];
-            $_SESSION['user_id']    = $user['UserID'];
-
-            // get role-specific name
-            switch ($role) {
-                case 'tenant':
-                    $q = $conn->prepare("SELECT Name FROM Tenants WHERE UserID = ?");
-                    break;
-                case 'landlord':
-                    $q = $conn->prepare("SELECT Name FROM Landlord WHERE UserID = ?");
-                    break;
-                case 'staff':
-                    $q = $conn->prepare("SELECT Name FROM Staff WHERE UserID = ?");
-                    break;
+                header("Location: dashboard.php");
+                exit;
             }
+            // Flow for normal users
+            if ($dbrole !== $role){
+                $error = "Incorrect role selected for this account";
+            } else {
+                    // get role-specific name
+                    switch ($dbrole) {
+                        case 'tenant':
+                            $q = $conn->prepare("SELECT Name FROM Tenants WHERE UserID = ?");
+                            break;
+                        case 'landlord':
+                            $q = $conn->prepare("SELECT Name FROM Landlord WHERE UserID = ?");
+                            break;
+                        case 'staff':
+                            $q = $conn->prepare("SELECT Name FROM Staff WHERE UserID = ?");
+                            break;
+                    }
+                }
+            if (!empty($error)) {
+                // DO NOT CONTINUE LOGIN
+                // Just stop processing and let HTML show the error box
+            }
+            else {
+                // Only run DB name lookup if no error
+                if (isset($q) && $q) {
+                    $q->bind_param("i", $user['UserID']);
+                    $q->execute(); 
+                    $name = $q->get_result()->fetch_assoc()['Name'] ?? "User";
+                }
 
-            $q->bind_param("i", $user['UserID']);
-            $q->execute();
+            
+                
+                //Store session
+                $_SESSION['user_email'] = $user['Email'];
+                $_SESSION['role']       = $dbrole;
+                $_SESSION['user_id']    = $user['UserID'];
+                $_SESSION['user_name']  = $name;
 
-            $name = $q->get_result()->fetch_assoc()['Name'] ?? "User";
-            $_SESSION['user_name'] = $name;
-
-            header("Location: dashboard.php");
-            exit;
+                header("Location: dashboard.php");
+                exit;
+            }
 
         } else {
             $error = "Incorrect password.";
         }
 
     } else {
-        $error = "No account found with that email + role.";
+        $error = "No account found with that email";
     }
 }
 ?>

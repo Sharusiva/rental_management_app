@@ -38,10 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = "Please select your property from the list.";
                     } else {
                         $stmt2 = $conn->prepare("
-                            INSERT INTO Tenants (Name, email, UserID, PropertyID)
-                            VALUES (?, ?, ?, ?)
+                            INSERT INTO Tenants (Name, email, PhoneNum, UserID, PropertyID)
+                            VALUES (?, ?, ?, ?, ?)
                         ");
-                        $stmt2->bind_param("ssii", $name, $email, $userId, $propertyId);
+                        $stmt2->bind_param("sssii", $name, $email, $phone, $userId, $propertyId);
                         $stmt2->execute();
                         $success = "Tenant account created successfully. You can now log in.";
                     }
@@ -127,6 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  style="margin-top:8px; border:1px solid #cdd8f3; border-radius:6px; max-height:150px; overflow-y:auto; display:none; background:#fff;">
             </div>
 
+            <label> Phone Number: </label>
+            <input type="text" name="phone" required>
+
             <!-- Hidden field used on submit -->
             <input type="hidden" name="property_id" id="property-id-hidden">
         </div>
@@ -178,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // AJAX search for property, but only after a minimum number of characters
-    const MIN_CHARS = 5;
+    const MIN_CHARS = 10;
 
     if (propertyInput) {
         propertyInput.addEventListener("input", function () {
