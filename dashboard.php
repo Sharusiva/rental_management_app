@@ -39,7 +39,7 @@ $role = $_SESSION['role'];
   <ul class="sidebar-menu">
     <?php // Links are all correct from the root folder ?>
     <?php if ($role == 'admin'): ?>
-      <li><a href="roles/admin.php">Admin Panel</a></li>
+      <li><a href="#">System Logs</a></li>
     <?php elseif ($role == 'landlord'): ?>
       <li><a href="roles/landlord/calender.php">My Calender</a></li>
       <li><a href="roles/landlord/payments.php">Payments</a></li>
@@ -70,8 +70,7 @@ $role = $_SESSION['role'];
             break;
 
         case 'admin':
-            // include('roles/admin/admin_content.php'); 
-            echo '<h2> Admin Dashboard</h2><p>Welcome, Administrator.</p>'; 
+            include('roles/admin/admin_dashboard.php'); 
             break;
 
         case 'tenant':
