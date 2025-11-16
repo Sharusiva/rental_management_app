@@ -118,7 +118,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <input type="text" id="address" name="address" placeholder="Enter property address" required>
 
         <input type="submit" value="Add Property">
-        <a href="../../../dashboard.php" class="back-btn">⬅ Back</a>
+        <a href="../../dashboard.php" class="back-btn">⬅ Back</a>
     </form>
 </div>
 

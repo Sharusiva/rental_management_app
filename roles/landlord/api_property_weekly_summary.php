@@ -25,14 +25,14 @@ $stmt = $conn->prepare("
             FROM Lease ls
             JOIN Payments pm ON pm.LeaseNum = ls.LeaseNum
             WHERE ls.PropertyID = p.PropertyID
-              AND pm.PaymentDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+              AND pm.PaymentDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
         ), 0) AS income_week,
         COALESCE((
             SELECT SUM(mr.Cost)
             FROM MaintenanceRequest mr
 	    JOIN Tenants t on mr.TenantID = t.TenantID
             WHERE t.PropertyID = p.PropertyID
-              AND mr.RequestDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+              AND mr.RequestDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
         ), 0) AS maintenance_week
     FROM Property p
     JOIN Landlord l ON p.LandlordID = l.LandlordID

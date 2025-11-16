@@ -257,24 +257,30 @@ body.sidebar-active .content {
 
 /* Flex container holding chart + chat side-by-side */
 .overview-row {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 30px;
-    width: 100%;
-    margin-top: 15px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 30px;
+  width: 100%;
+  margin-top: 15px;
 }
 
 /* Chart wrapper */
 .chart-wrapper {
-    flex: 2;
-    min-width: 0;
+  flex: 2;
+  min-width: 0;
+  height: 260px;                
+  padding: 16px 20px 10px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  display: flex;     
 }
 
 /* Make chart responsive */
 #propertyEarningsChart {
     width: 100% !important;
-    max-height: 380px;
+    height: 100% !important;
 }
 
 /* --------------------------------------

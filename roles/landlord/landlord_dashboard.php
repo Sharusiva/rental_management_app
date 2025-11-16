@@ -202,7 +202,11 @@ if ($landlordEmail) {
                     <td><?= htmlspecialchars($req['Issue']); ?></td>
                     <td><?= htmlspecialchars($req['staff_name']); ?></td>
                     <td><?= htmlspecialchars($req['RequestDate']); ?></td>
-                    <td>$<?= number_format($req['Cost'], 2); ?></td>
+                    <td><?php
+                            $cost = $req['Cost'] ?? null;
+                            echo $cost === null ? '—' : '$' . number_format((float)$cost, 2);
+                        ?>
+                    </td>
                     <td><?= htmlspecialchars($req['status']); ?></td>
                 </tr>
             <?php endforeach; ?>
