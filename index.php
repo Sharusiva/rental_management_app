@@ -2,28 +2,33 @@
 session_start();
 include('includes/db.php');
 
-$error = "";   // <-- REQUIRED to avoid undefined variable warning
+$error = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-    $role = $_POST['role'];
+    $email    = $_POST['email']    ?? '';
+    $password = $_POST['password'] ?? '';
+    $role     = $_POST['role']     ?? '';  // <-- SAFE, no undefined key warning
 
-    // Lookup user
+    // Lookup user by email
     $stmt = $conn->prepare("SELECT * FROM Users WHERE Email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $res = $stmt->get_result();
 
     if ($res->num_rows === 1) {
+
         $user = $res->fetch_assoc();
         $dbrole = $user['Role'];
 
+        // Check password
         if (password_verify($password, $user['PasswordHash'])) {
-            
-            //Admin Override
+
+            // ------------------
+            // ADMIN OVERRIDE
+            // ------------------
             if ($dbrole === 'admin') {
+
                 $_SESSION['user_email'] = $user['Email'];
                 $_SESSION['role']       = 'admin';
                 $_SESSION['user_id']    = $user['UserID'];
@@ -32,38 +37,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: dashboard.php");
                 exit;
             }
-            // Flow for normal users
-            if ($dbrole !== $role){
+
+            // ------------------
+            // Non-admin users must select their role
+            // ------------------
+            if ($role !== $dbrole) {
                 $error = "Incorrect role selected for this account";
-            } else {
-                    // get role-specific name
-                    switch ($dbrole) {
-                        case 'tenant':
-                            $q = $conn->prepare("SELECT Name FROM Tenants WHERE UserID = ?");
-                            break;
-                        case 'landlord':
-                            $q = $conn->prepare("SELECT Name FROM Landlord WHERE UserID = ?");
-                            break;
-                        case 'staff':
-                            $q = $conn->prepare("SELECT Name FROM Staff WHERE UserID = ?");
-                            break;
-                    }
-                }
-            if (!empty($error)) {
-                // DO NOT CONTINUE LOGIN
-                // Just stop processing and let HTML show the error box
             }
-            else {
-                // Only run DB name lookup if no error
-                if (isset($q) && $q) {
-                    $q->bind_param("i", $user['UserID']);
-                    $q->execute(); 
-                    $name = $q->get_result()->fetch_assoc()['Name'] ?? "User";
+
+            if (!empty($error)) {
+                // stop login process
+            } else {
+
+                // Lookup user's name from specific table
+                switch ($dbrole) {
+                    case 'tenant':
+                        $q = $conn->prepare("SELECT Name FROM Tenants WHERE UserID = ?");
+                        break;
+                    case 'landlord':
+                        $q = $conn->prepare("SELECT Name FROM Landlord WHERE UserID = ?");
+                        break;
+                    case 'staff':
+                        $q = $conn->prepare("SELECT Name FROM Staff WHERE UserID = ?");
+                        break;
+                    default:
+                        $q = null;
+                        break;
                 }
 
-            
-                
-                //Store session
+                $name = "User";
+
+                if ($q) {
+                    $q->bind_param("i", $user['UserID']);
+                    $q->execute();
+                    $result = $q->get_result();
+                    $name = $result->fetch_assoc()['Name'] ?? "User";
+                }
+
+                // Store session details
                 $_SESSION['user_email'] = $user['Email'];
                 $_SESSION['role']       = $dbrole;
                 $_SESSION['user_id']    = $user['UserID'];
@@ -82,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 
 <!DOCTYPE html>
@@ -110,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="password" name="password" required>
 
         <label>Role:</label>
-        <select name="role" required>
+        <select name="role">
             <option value="" disabled selected>Select Role…</option>
             <option value="tenant">Tenant</option>
             <option value="landlord">Landlord</option>
