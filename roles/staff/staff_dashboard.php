@@ -63,7 +63,7 @@ if ($staffEmail) {
         <td><?php echo htmlspecialchars($r['Issue']); ?></td>
         <td><?php echo htmlspecialchars($r['current_status']); ?></td>
         <td>
-          <a href="roles/staff/manage_task.php?request_num=<?php echo $r['RequestNUM']; ?>" class="action-link">
+          <a href="roles/staff/updateTask.php?request_num=<?php echo $r['RequestNUM']; ?>" class="action-link">
             Manage
           </a>
         </td>

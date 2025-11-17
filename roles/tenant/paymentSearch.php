@@ -1,49 +1,20 @@
 <?php
-// 1. Authenticate and connect to DB
 include('../../includes/auth.php');
 include('../../includes/db.php');
 
-// 2. Get user data and role from session
-$email = $_SESSION['user_email'];
 $role = $_SESSION['role'];
 
-// 3. --- TENANT ONLY ---
 if ($role !== 'tenant') {
     header('Location: ../../dashboard.php'); 
     exit;
 }
-
-// 4. --- Get Payment History ---
-$payments = [];
-
-// This query joins from the logged-in user's email all the way to their payments
-$stmt = $conn->prepare("
-    SELECT 
-        p.DueDate, 
-        p.Amount, 
-        p.Status
-    FROM Payments p
-    JOIN Lease l ON p.LeaseNum = l.LeaseNum
-    JOIN Tenants t ON l.TenantID = t.TenantID
-    JOIN Users u ON t.UserID = u.UserID
-    WHERE u.Email = ?
-    ORDER BY p.DueDate DESC
-");
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $payments[] = $row;
-}
-$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Payment History</title>
-    <!-- CSS for this page ONLY -->
+    <title>My Payment History (AJAX)</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -69,8 +40,49 @@ $stmt->close();
         .back-link:hover {
             text-decoration: underline;
         }
-        
-        /* Table styling */
+        .search-form {
+            background: #fdfdfd;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto auto; 
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .form-group {
+            flex-grow: 1;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; 
+        }
+        .btn-submit, .btn-download {
+            display: inline-block;
+            padding: 10px 18px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            height: 38px; 
+        }
+        .btn-submit {
+            background-color: #0077cc;
+        }
+        .btn-download {
+            background-color: #28a745; 
+        }
         .history-table {
             width: 100%;
             border-collapse: collapse;
@@ -88,8 +100,6 @@ $stmt->close();
         .history-table tr:hover {
             background-color: #f9f9f9;
         }
-
-        /* Badge Styling */
         .badge {
             padding: 4px 10px;
             border-radius: 12px;
@@ -107,12 +117,35 @@ $stmt->close();
 <body>
 
     <div class="container">
-        <!-- Link to go back to the main dashboard -->
         <a href="../../dashboard.php" class="back-link">⬅️ Back to Dashboard</a>
 
         <h2>My Payment History</h2>
-        <p>A complete record of all your payments.</p>
+        <p>Search and filter your complete payment record.</p>
         
+        <form class="search-form" id="filter-form">
+            <div class="form-group">
+                <label for="status">Status (Category)</label>
+                <select name="status" id="status">
+                    <option value="">All Statuses</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Late">Late</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Future">Future</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="date_from">Date From</label>
+                <input type="date" name="date_from" id="date_from">
+            </div>
+            <div class="form-group">
+                <label for="date_to">Date To</label>
+                <input type="date" name="date_to" id="date_to">
+            </div>
+            
+            <button type="button" id="filter-button" class="btn-submit">Filter</button>
+            <button type="button" id="download-button" class="btn-download">CSV</button>
+        </form>
+
         <table class="history-table">
             <thead>
                 <tr>
@@ -121,43 +154,93 @@ $stmt->close();
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
-                <?php if (!empty($payments)): ?>
-                    <?php foreach ($payments as $payment): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($payment['DueDate']); ?></td>
-                            <td>$<?php echo number_format($payment['Amount'], 2); ?></td>
-                            <td>
-                                <?php
-                                // Logic to set the badge color
-                                $status = strtolower($payment['Status']);
-                                $status_class = '';
-                                if ($status == 'paid') {
-                                    $status_class = 'paid';
-                                } elseif ($status == 'late') {
-                                    $status_class = 'late';
-                                } elseif ($status == 'pending') {
-                                    $status_class = 'pending';
-                                } else {
-                                    $status_class = 'future';
-                                }
-                                ?>
-                                <span class="badge <?php echo $status_class; ?>">
-                                    <?php echo htmlspecialchars($payment['Status']); ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="3" style="text-align: center; padding: 20px;">
-                            No payment history found.
-                        </td>
-                    </tr>
-                <?php endif; ?>
+            <tbody id="history-table-body">
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 20px;">
+                        Loading...
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterForm = document.getElementById('filter-form');
+            const filterButton = document.getElementById('filter-button');
+            const downloadButton = document.getElementById('download-button');
+            const tableBody = document.getElementById('history-table-body');
+            
+            function getBadgeClass(status) {
+                const s = status.toLowerCase();
+                if (s === 'paid') return 'paid';
+                if (s === 'late') return 'late';
+                if (s === 'pending') return 'pending';
+                return 'future'; 
+            }
+
+            function getFilterQueryString() {
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams(formData);
+                return params.toString();
+            }
+
+            async function fetchAndRenderTable() {
+                const queryString = getFilterQueryString();
+                const apiUrl = `paymentSearchFetch.php?${queryString}`;
+                
+                tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">Loading...</td></tr>';
+
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    const payments = await response.json();
+
+                    tableBody.innerHTML = '';
+
+                    if (payments.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px;">No payment history found matching your search.</td></tr>';
+                        return;
+                    }
+
+                    payments.forEach(payment => {
+                        const statusClass = getBadgeClass(payment.Status);
+                        const amount = parseFloat(payment.Amount).toFixed(2);
+                        
+                        const row = `
+                            <tr>
+                                <td>${payment.DueDate}</td>
+                                <td>$${amount}</td>
+                                <td>
+                                    <span class="badge ${statusClass}">
+                                        ${payment.Status}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.innerHTML += row;
+                    });
+
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    tableBody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: red;">Error loading data.</td></tr>`;
+                }
+            }
+
+            filterButton.addEventListener('click', function() {
+                fetchAndRenderTable();
+            });
+
+            downloadButton.addEventListener('click', function() {
+                const queryString = getFilterQueryString();
+                const downloadUrl = `paymentSearchFetch.php?action=download_csv&${queryString}`;
+                window.location.href = downloadUrl;
+            });
+
+            fetchAndRenderTable();
+        });
+    </script>
 </body>
 </html>

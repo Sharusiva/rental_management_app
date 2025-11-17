@@ -1,141 +1,14 @@
 <?php
-// 1. Authenticate and connect to DB
 include('../../includes/auth.php');
-include('../../includes/db.php');
 
-// 2. Get user data from session
-$user_name = $_SESSION['user_name'];
-$role = $_SESSION['role'];
-$user_email = $_SESSION['user_email'];
-
-// 3. --- STAFF ONLY ---
-//    We still need this for security
-if ($role !== 'staff') {
+if ($_SESSION['role'] !== 'staff') {
     header('Location: ../../dashboard.php'); 
     exit;
 }
 
-// 4. Get the logged-in staff member's StaffID
-$loggedInStaffID = null;
-$stmt_staff = $conn->prepare("
-    SELECT s.StaffID 
-    FROM Staff s
-    JOIN Users u ON s.UserID = u.UserID
-    WHERE u.Email = ?
-");
-$stmt_staff->bind_param("s", $user_email);
-$stmt_staff->execute();
-$stmt_staff->bind_result($loggedInStaffID);
-$stmt_staff->fetch();
-$stmt_staff->close();
-
-if (!$loggedInStaffID) {
-    die("Could not find a valid staff profile for your user account.");
-}
-
-
-$message = ""; // For success/error messages
-$message_type = "success"; // For styling
-$task = null; // To store task data
-
-// 5. Check for the RequestNUM from the URL or POST. This is mandatory.
-// (FIX 1: Get $requestNum from GET on page load, or POST on form submit)
-if (isset($_GET['request_num'])) {
-    $requestNum = (int)$_GET['request_num'];
-} elseif (isset($_POST['request_num'])) {
-    $requestNum = (int)$_POST['request_num'];
-} else {
+$requestNum = (int)($_GET['request_num'] ?? 0);
+if ($requestNum <= 0) {
     die("No task was specified. Please go back to the dashboard and select a task.");
-}
-
-
-// 6. --- HANDLE FORM SUBMISSION (POST request) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    // --- (NEW) VALIDATION BLOCK ---
-    $errors = [];
-    $allowed_statuses = ['Pending', 'In Progress', 'Completed', 'On Hold'];
-    
-    $new_status = $_POST['status'];
-    $new_cost_input = $_POST['cost'];
-    $cost_to_save = NULL;
-
-    // 1. Validate Status
-    if (!in_array($new_status, $allowed_statuses)) {
-        $errors[] = "Invalid status selected.";
-    }
-
-    // 2. Validate Cost (data type check)
-    if (!empty($new_cost_input)) {
-        if (!is_numeric($new_cost_input)) {
-            $errors[] = "Cost must be a valid number.";
-        } elseif ((float)$new_cost_input < 0) {
-            $errors[] = "Cost cannot be negative.";
-        } else {
-            $cost_to_save = (float)$new_cost_input; // Set the valid, non-empty cost
-        }
-    }
-    // If $new_cost_input is empty, $cost_to_save remains NULL, which is correct.
-
-    // --- (END) VALIDATION BLOCK ---
-
-    if (empty($errors)) {
-        // Validation passed, proceed with database update
-        
-        // Security Check: Update the row ONLY if the RequestNUM and StaffID match
-        $stmt_update = $conn->prepare("
-            UPDATE MaintenanceRequest 
-            SET current_status = ?, Cost = ? 
-            WHERE RequestNUM = ? AND StaffID = ?
-        ");
-        // Use the validated $cost_to_save variable
-        $stmt_update->bind_param("sdii", $new_status, $cost_to_save, $requestNum, $loggedInStaffID);
-        
-        if ($stmt_update->execute()) {
-            if ($stmt_update->affected_rows > 0) {
-                $message = "Task updated successfully!";
-                $message_type = "success";
-            } else {
-                $message = "No changes were made. (Or this task is not assigned to you).";
-                $message_type = "info";
-            }
-        } else {
-            $message = "Error: " . $conn->error;
-            $message_type = "error";
-        }
-        $stmt_update->close();
-
-    } else {
-        // Validation failed, show errors
-        $message = "Update failed: " . implode(" ", $errors);
-        $message_type = "error";
-    }
-}
-
-
-
-$stmt_select = $conn->prepare("
-    SELECT 
-        Issue, request_date, Cost, current_status,
-        tenant_name, tenant_phone,
-        property_address, property_city
-    FROM LandlordMaintenanceView
-    WHERE RequestNUM = ? AND StaffID = ?
-");
-$stmt_select->bind_param("ii", $requestNum, $loggedInStaffID);
-$stmt_select->execute();
-$result = $stmt_select->get_result();
-$task = $result->fetch_assoc();
-$stmt_select->close();
-
-if (!$task) {
-    die("Error: Task #$requestNum not found or it is not assigned to you.");
-}
-
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
-    $task['current_status'] = $new_status;
-    $task['Cost'] = $cost_to_save;
 }
 ?>
 <!DOCTYPE html>
@@ -201,16 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
             border-radius: 4px;
             box-sizing: border-box; 
         }
-        .form-group textarea {
-             width: 100%;
-             padding: 8px;
-             border: 1px solid #ccc;
-             border-radius: 4px;
-             box-sizing: border-box;
-             min-height: 80px;
-             background: #f9f9f9;
-             font-family: inherit;
-        }
         .issue-box {
              background: #f9f9f9;
              border: 1px solid #eee;
@@ -235,77 +98,174 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
         .btn-submit:hover {
             background-color: #218838;
         }
-        
-        /* Message styling */
+        .btn-submit:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+        }
         .message {
             padding: 15px;
             margin-bottom: 20px;
             border-radius: 6px;
             font-weight: 600;
+            display: none;
         }
         .message.success {
             background-color: #e6ffed;
             border: 1px solid #b7e9c7;
             color: #006421;
+            display: block;
         }
         .message.error {
             background-color: #ffe6e6;
             border: 1px solid #ffb3b3;
             color: #cc0000;
+            display: block;
         }
         .message.info {
             background-color: #e6f7ff;
             border: 1px solid #b3e0ff;
             color: #0056b3;
+            display: block;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #555;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <a href="../../dashboard.php" class="back-link"> Back to Dashboard</a>
+        <a href="../../dashboard.php" class="back-link">⬅️ Back to Dashboard</a>
 
         <h2>Manage Maintenance Task #<?php echo $requestNum; ?></h2>
         
-        <?php if (!empty($message)): ?>
-            <div class="message <?php echo $message_type; ?>"><?php echo $message; ?></div>
-        <?php endif; ?>
+        <div id="message-container" class="message"></div>
+        
+        <div id="loader" class="loading">Loading task details...</div>
 
-        <div class="task-info">
-            <h3>Task Details</h3>
-            <p><strong>Tenant:</strong> <?php echo htmlspecialchars($task['tenant_name']); ?></p>
-            <p><strong>Phone:</strong> <?php echo htmlspecialchars($task['tenant_phone']); ?></p>
-            <p><strong>Address:</strong> <?php echo htmlspecialchars($task['property_address'] . ', ' . $task['property_city']); ?></p>
-            <p><strong>Reported:</strong> <?php echo htmlspecialchars($task['request_date']); ?></p>
-            <p><strong>Issue:</strong></p>
-            <div class="issue-box">
-                <?php echo nl2br(htmlspecialchars($task['Issue']));  ?>
+        <div id="task-content" style="display: none;">
+            <div class="task-info">
+                <h3>Task Details</h3>
+                <p><strong>Tenant:</strong> <span id="tenant-name"></span></p>
+                <p><strong>Phone:</strong> <span id="tenant-phone"></span></p>
+                <p><strong>Address:</strong> <span id="property-address"></span></p>
+                <p><strong>Reported:</strong> <span id="request-date"></span></p>
+                <p><strong>Issue:</strong></p>
+                <div class="issue-box" id="issue-box"></div>
             </div>
+
+            <form method="POST" id="update-form">
+                <input type="hidden" name="request_num" value="<?php echo $requestNum; ?>">
+
+                <div class="form-group">
+                    <label for="status">Update Status</label>
+                    <select name="status" id="status-select">
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                        <option value="On Hold">On Hold</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="cost">Update Cost (e.g., 50.00)</label>
+                    <input type="number" step="0.01" min="0" name="cost" id="cost-input" placeholder="0.00">
+                </div>
+
+                <button type="submit" id="submit-button" class="btn-submit">Update Task</button>
+            </form>
         </div>
-
-
-        <form method="POST" action="">
-            
-            <input type="hidden" name="request_num" value="<?php echo $requestNum; ?>">
-
-            <div class="form-group">
-                <label for="status">Update Status</label>
-                <select name="status" id="status">
-                    <option value="Pending" <?php if($task['current_status'] == 'Pending') echo 'selected'; ?>>Pending</option>
-                    <option value="In Progress" <?php if($task['current_status'] == 'In Progress') echo 'selected'; ?>>In Progress</option>
-                    <option value="Completed" <?php if($task['current_status'] == 'Completed') echo 'selected'; ?>>Completed</option>
-                    <option value="On Hold" <?php if($task['current_status'] == 'On Hold') echo 'selected'; ?>>On Hold</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="cost">Update Cost (e.g., 50.00)</label>
-                <input type="number" step="0.01" min="0" name="cost" id="cost" value="<?php echo htmlspecialchars($task['Cost']); ?>" placeholder="0.00">
-            </div>
-
-            <button type="submit" class="btn-submit">Update Task</button>
-        </form>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const requestNum = <?php echo $requestNum; ?>;
+            const loader = document.getElementById('loader');
+            const taskContent = document.getElementById('task-content');
+            const messageContainer = document.getElementById('message-container');
+            
+            const form = document.getElementById('update-form');
+            const button = document.getElementById('submit-button');
+            
+            const tenantName = document.getElementById('tenant-name');
+            const tenantPhone = document.getElementById('tenant-phone');
+            const propertyAddress = document.getElementById('property-address');
+            const requestDate = document.getElementById('request-date');
+            const issueBox = document.getElementById('issue-box');
+            const statusSelect = document.getElementById('status-select');
+            const costInput = document.getElementById('cost-input');
+
+            async function loadTaskDetails() {
+                try {
+                    const response = await fetch(`updateTaskFetch.php?request_num=${requestNum}`);
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.message || 'Error loading task.');
+                    }
+                    
+                    const task = result.task;
+                    tenantName.textContent = task.tenant_name;
+                    tenantPhone.textContent = task.tenant_phone;
+                    propertyAddress.textContent = `${task.property_address}, ${task.property_city}`;
+                    requestDate.textContent = task.request_date;
+                    issueBox.textContent = task.Issue;
+                    statusSelect.value = task.current_status;
+                    costInput.value = task.Cost || '';
+                    
+                    loader.style.display = 'none';
+                    taskContent.style.display = 'block';
+
+                } catch (error) {
+                    loader.style.display = 'none';
+                    messageContainer.className = 'message error';
+                    messageContainer.textContent = error.message;
+                    messageContainer.style.display = 'block';
+                }
+            }
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault(); 
+                
+                button.disabled = true;
+                button.textContent = 'Updating...';
+                messageContainer.style.display = 'none';
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch('updateTaskFetch.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    messageContainer.className = 'message'; 
+
+                    if (response.ok) {
+                        messageContainer.classList.add('success');
+                        messageContainer.textContent = result.message;
+                    } else {
+                        messageContainer.classList.add('error');
+                        messageContainer.textContent = result.message || 'An error occurred.';
+                    }
+                    messageContainer.style.display = 'block';
+
+                } catch (error) {
+                    messageContainer.className = 'message error';
+                    messageContainer.textContent = 'A network error occurred. Please try again.';
+                    messageContainer.style.display = 'block';
+                } finally {
+                    button.disabled = false;
+                    button.textContent = 'Update Task';
+                }
+            });
+            
+            loadTaskDetails();
+        });
+    </script>
 </body>
 </html>

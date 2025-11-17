@@ -9,9 +9,7 @@ if ($_SESSION['role'] !== 'tenant') {
     exit;
 }
 
-/**
- * Formats a number as an ordinal string (e.g., 1 -> 1st, 2 -> 2nd).
- */
+
 function getOrdinalSuffix($day) {
     if (in_array(($day % 100), [11, 12, 13])) {
         return 'th';
@@ -24,12 +22,11 @@ function getOrdinalSuffix($day) {
     }
 }
 
-$tenantEmail = $_SESSION['user_email']; // This is the User's login email
+$tenantEmail = $_SESSION['user_email']; 
 $tenantID = null;
-$events = []; // Initialize the events array
-$leaseInfo = []; // Store lease info
+$events = []; 
+$leaseInfo = []; 
 
-// 3. Get the TenantID by joining Users and Tenants
 $stmt_tenant = $conn->prepare("
     SELECT t.TenantID 
     FROM Tenants t
@@ -43,10 +40,8 @@ $stmt_tenant->fetch();
 $stmt_tenant->close();
 
 
-// 4. Only run if we found a valid TenantID
 if ($tenantID) {
     
-    // --- First, get the main lease event (as a background) ---
     $query_lease = "
         SELECT 
             p.Address AS Address, 
@@ -66,20 +61,19 @@ if ($tenantID) {
     if ($lease = $result_lease->fetch_assoc()) {
         $leaseInfo = $lease; // Save for later
         $day = $lease['DayOfMonthDue'];
-        $ordinalDay = $day . getOrdinalSuffix($day); // e.g., "1st" or "15th"
+        $ordinalDay = $day . getOrdinalSuffix($day); 
 
         $events[] = [
             'title' => 'My Lease (Rent Due on the ' . $ordinalDay . ')',
             'start' => $lease['StartDate'],
             'end' => $lease['EndDate'],
-            'color' => '#0077cc', // Blue for the lease
+            'color' => '#0077cc', 
             'display' => 'background' 
         ];
     }
     $stmt_lease->close();
 
-    // --- (NEW) Second, get ALL "Late" payments ---
-    // These are RED
+
     $query_late = "
         SELECT p.DueDate, p.Amount
         FROM Payments p
@@ -92,19 +86,18 @@ if ($tenantID) {
     $stmt_late->execute();
     $result_late = $stmt_late->get_result();
     
-    $late_dates = []; // Keep track of late dates
+    $late_dates = []; 
     while ($payment = $result_late->fetch_assoc()) {
         $events[] = [
             'title' => 'RENT LATE: $' . number_format($payment['Amount'], 2),
             'start' => $payment['DueDate'],
-            'color' => '#dc3545' // Red
+            'color' => '#dc3545' 
         ];
-        $late_dates[] = $payment['DueDate']; // Store this date
+        $late_dates[] = $payment['DueDate']; 
     }
     $stmt_late->close();
     
-    // --- (NEW) Third, get the SINGLE NEXT "Pending" or "Future" payment ---
-    // This is the YELLOW box
+
     $query_next = "
         SELECT p.DueDate, p.Amount, p.Status
         FROM Payments p
@@ -121,13 +114,12 @@ if ($tenantID) {
     $result_next = $stmt_next->get_result();
 
     if ($next_payment = $result_next->fetch_assoc()) {
-        // Only add this yellow box if it's NOT on a date that is already marked as LATE
-        // (This check is just in case of weird data)
+
         if (!in_array($next_payment['DueDate'], $late_dates)) {
             $events[] = [
                 'title' => 'Next Rent Payment: $' . number_format($next_payment['Amount'], 2),
                 'start' => $next_payment['DueDate'],
-                'color' => '#ffc107', // Yellow
+                'color' => '#ffc107', 
                 'textColor' => '#000'
             ];
         }
