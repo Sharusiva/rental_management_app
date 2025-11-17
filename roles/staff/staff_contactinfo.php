@@ -1,55 +1,47 @@
 <?php
-
 include('../../includes/auth.php');
 include('../../includes/db.php');
 
-$user_name = $_SESSION['user_name'];
-$role = $_SESSION['role'];
+if ($_SESSION['role'] !== 'staff') {
+    header('Location: ../../dashboard.php'); 
+    exit;
+}
 
 $contacts = [];
-$stmt_contacts = $conn->prepare("
-    SELECT entity_name, contact_email, entity_type
-    FROM MixedContactInfo
-    ORDER BY entity_type, entity_name
-");
-$stmt_contacts->execute();
-$result_contacts = $stmt_contacts->get_result();
+$result = $conn->query("SELECT entity_name, contact_email, entity_type FROM MixedContactInfo ORDER BY entity_type, entity_name");
+if ($result) {
+    while ($row = $result->fetch_assoc()) $contacts[] = $row;
+}
 
-while ($row = $result_contacts->fetch_assoc()) {
-    $contacts[] = $row;
+$properties = [];
+$result = $conn->query("SELECT full_property_address, landlord_email FROM LandlordAndPropertyAddresses ORDER BY full_property_address");
+if ($result) {
+    while ($row = $result->fetch_assoc()) $properties[] = $row;
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Contact List</title>
-  
+  <title>Staff Contact Directory</title>
   <link rel="stylesheet" href="../../assets/style.css">
-
+  <style>
+      body { background-color: #f9f9f9; padding: 20px; }
+      .container { max-width: 900px; margin: 0 auto; }
+  </style>
 </head>
 <body>
-<div class="topbar">
-   <div class="profile-icon" onclick="toggleSidebar()">
-    <svg xmlns="http://www.w3.org/2000/svg" height="28" width="28" viewBox="0 0 24 24" fill="white">
-      <path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/>
-    </svg>
-   </div>
-   <h2 class="app-title">Rental System Dashboard</h2>
-</div>
 
-
-
-<div class="content">
+<div class="container">
     <div class="welcome-banner">
-      <h2>Contact List</h2>
-      <p>A full directory of all tenants and landlords.</p>
+      <h2>📞 Staff Directory</h2>
+      <p>Contact information for Tenants and Landlords, plus a property lookup.</p>
     </div>
 
-    <a href="../../dashboard.php" class="btn-return"> Return to Dashboard</a>
+    <a href="../../dashboard.php" class="btn-return">⬅ Back to Dashboard</a>
 
     <section class="dashboard-section">
-      <h2>Contact List (Tenants & Landlords)</h2>
+      <h2>People Directory</h2>
       <table class="dashboard-table">
         <thead>
           <tr>
@@ -60,15 +52,52 @@ while ($row = $result_contacts->fetch_assoc()) {
         </thead>
         <tbody>
       <?php if (!empty($contacts)): ?>
-          <?php foreach ($contacts as $contact): ?>
+          <?php foreach ($contacts as $c): ?>
           <tr>
-            <td><?php echo htmlspecialchars($contact['entity_name']); ?></td>
-            <td><?php echo htmlspecialchars($contact['contact_email']); ?></td>
-            <td><?php echo htmlspecialchars($contact['entity_type']); ?></td>
+            <td><?php echo htmlspecialchars($c['entity_name']); ?></td>
+            <td>
+                <a href="mailto:<?php echo htmlspecialchars($c['contact_email']); ?>">
+                    <?php echo htmlspecialchars($c['contact_email']); ?>
+                </a>
+            </td>
+            <td>
+                <span class="badge <?php echo ($c['entity_type'] == 'Tenant') ? 'active' : 'expiring'; ?>">
+                    <?php echo htmlspecialchars($c['entity_type']); ?>
+                </span>
+            </td>
           </tr>
           <?php endforeach; ?>
       <?php else: ?>
-          <tr><td colspan="3">No contacts found in the view.</td></tr>
+          <tr><td colspan="3">No contacts found.</td></tr>
+      <?php endif; ?>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="dashboard-section">
+      <h2>Property Owners</h2>
+      <p style="margin-bottom:10px; color:#666;">Use this to find the Landlord for a specific address.</p>
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Full Property Address</th>
+            <th>Landlord Email</th>
+          </tr>
+        </thead>
+        <tbody>
+      <?php if (!empty($properties)): ?>
+          <?php foreach ($properties as $p): ?>
+          <tr>
+            <td><?php echo htmlspecialchars($p['full_property_address']); ?></td>
+            <td>
+                <a href="mailto:<?php echo htmlspecialchars($p['landlord_email']); ?>">
+                    <?php echo htmlspecialchars($p['landlord_email']); ?>
+                </a>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+      <?php else: ?>
+          <tr><td colspan="2">No property records found.</td></tr>
       <?php endif; ?>
         </tbody>
       </table>
@@ -76,5 +105,4 @@ while ($row = $result_contacts->fetch_assoc()) {
 </div>
 
 </body>
-
 </html>

@@ -39,7 +39,8 @@ $role = $_SESSION['role'];
   <ul class="sidebar-menu">
     <?php // Links are all correct from the root folder ?>
     <?php if ($role == 'admin'): ?>
-      <li><a href="#">System Logs</a></li>
+      <li><a href="roles/admin/admin_reports.php">Admin Reports</a></li>
+
     <?php elseif ($role == 'landlord'): ?>
       <li><a href="roles/landlord/calender.php">My Calender</a></li>
       <li><a href="roles/landlord/payments.php">Payments</a></li>
