@@ -1,130 +1,68 @@
 <?php
-// 1. Authenticate and connect to DB
-include('../../includes/auth.php');
 include('../../includes/db.php');
+include('../../includes/auth.php');
 
-// 2. Add a security check for tenants
+// Security check
 if ($_SESSION['role'] !== 'tenant') {
     header('Location: ../../dashboard.php');
     exit;
 }
 
+$tenantEmail = $_SESSION['user_email'];
 
-function getOrdinalSuffix($day) {
-    if (in_array(($day % 100), [11, 12, 13])) {
-        return 'th';
-    }
-    switch ($day % 10) {
-        case 1:  return 'st';
-        case 2:  return 'nd';
-        case 3:  return 'rd';
-        default: return 'th';
-    }
-}
-
-$tenantEmail = $_SESSION['user_email']; 
-$tenantID = null;
-$events = []; 
-$leaseInfo = []; 
-
-$stmt_tenant = $conn->prepare("
+// Get the tenant's ID
+$stmt = $conn->prepare("
     SELECT t.TenantID 
     FROM Tenants t
     JOIN Users u ON t.UserID = u.UserID
     WHERE u.Email = ?
 ");
-$stmt_tenant->bind_param("s", $tenantEmail);
-$stmt_tenant->execute();
-$stmt_tenant->bind_result($tenantID);
-$stmt_tenant->fetch();
-$stmt_tenant->close();
+$stmt->bind_param("s", $tenantEmail);
+$stmt->execute();
+$stmt->bind_result($tenantID);
+$stmt->fetch();
+$stmt->close();
 
+// Fetch lease info AND DayOfMonthDue
+$query = "
+    SELECT 
+        p.Address,
+        l.StartDate,
+        l.EndDate,
+        l.DayOfMonthDue
+    FROM Lease l
+    JOIN Property p ON l.PropertyID = p.PropertyID
+    WHERE l.TenantID = ?
+";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $tenantID);
+$stmt->execute();
+$result = $stmt->get_result();
 
-if ($tenantID) {
-    
-    $query_lease = "
-        SELECT 
-            p.Address AS Address, 
-            l.StartDate, 
-            l.EndDate,
-            l.DayOfMonthDue
-        FROM Lease l
-        JOIN Property p ON l.PropertyID = p.PropertyID
-        WHERE l.TenantID = ?
-        LIMIT 1
-    ";
-    $stmt_lease = $conn->prepare($query_lease);
-    $stmt_lease->bind_param("i", $tenantID);
-    $stmt_lease->execute();
-    $result_lease = $stmt_lease->get_result();
-    
-    if ($lease = $result_lease->fetch_assoc()) {
-        $leaseInfo = $lease; // Save for later
-        $day = $lease['DayOfMonthDue'];
-        $ordinalDay = $day . getOrdinalSuffix($day); 
+$events = [];
+while ($lease = $result->fetch_assoc()) {
+    // 1. The Lease Bar (Blue) - Matches Landlord Style
+    $events[] = [
+        'title' => 'Lease: ' . $lease['Address'],
+        'start' => $lease['StartDate'],
+        'end'   => $lease['EndDate'],
+        'color' => '#0077cc' // Blue
+    ];
 
-        $events[] = [
-            'title' => 'My Lease (Rent Due on the ' . $ordinalDay . ')',
-            'start' => $lease['StartDate'],
-            'end' => $lease['EndDate'],
-            'color' => '#0077cc', 
-            'display' => 'background' 
-        ];
-    }
-    $stmt_lease->close();
-
-
-    $query_late = "
-        SELECT p.DueDate, p.Amount
-        FROM Payments p
-        JOIN Lease l ON p.LeaseNum = l.LeaseNum
-        WHERE l.TenantID = ? AND p.Status = 'Late'
-        ORDER BY p.DueDate ASC
-    ";
-    $stmt_late = $conn->prepare($query_late);
-    $stmt_late->bind_param("i", $tenantID);
-    $stmt_late->execute();
-    $result_late = $stmt_late->get_result();
-    
-    $late_dates = []; 
-    while ($payment = $result_late->fetch_assoc()) {
-        $events[] = [
-            'title' => 'RENT LATE: $' . number_format($payment['Amount'], 2),
-            'start' => $payment['DueDate'],
-            'color' => '#dc3545' 
-        ];
-        $late_dates[] = $payment['DueDate']; 
-    }
-    $stmt_late->close();
-    
-
-    $query_next = "
-        SELECT p.DueDate, p.Amount, p.Status
-        FROM Payments p
-        JOIN Lease l ON p.LeaseNum = l.LeaseNum
-        WHERE l.TenantID = ? 
-          AND p.Status IN ('Pending', 'Future')
-          AND p.DueDate >= CURDATE()
-        ORDER BY p.DueDate ASC
-        LIMIT 1
-    ";
-    $stmt_next = $conn->prepare($query_next);
-    $stmt_next->bind_param("i", $tenantID);
-    $stmt_next->execute();
-    $result_next = $stmt_next->get_result();
-
-    if ($next_payment = $result_next->fetch_assoc()) {
-
-        if (!in_array($next_payment['DueDate'], $late_dates)) {
-            $events[] = [
-                'title' => 'Next Rent Payment: $' . number_format($next_payment['Amount'], 2),
-                'start' => $next_payment['DueDate'],
-                'color' => '#ffc107', 
-                'textColor' => '#000'
-            ];
-        }
-    }
-    $stmt_next->close();
+    // 2. Rent Due Indicator (Red) - Recurring Monthly
+    // We use the RRule plugin to make this repeat on the specific day
+    $day = (int)$lease['DayOfMonthDue'];
+    $events[] = [
+        'title' => 'RENT DUE',
+        'rrule' => [
+            'freq' => 'monthly',
+            'bymonthday' => $day,
+            'dtstart' => $lease['StartDate'],
+            'until' => $lease['EndDate']
+        ],
+        'color' => '#dc3545', // Red
+        'textColor' => 'white'
+    ];
 }
 ?>
 
@@ -133,36 +71,41 @@ if ($tenantID) {
 <head>
   <meta charset="UTF-8">
   <title>My Calendar</title>
+  
+  <!-- FullCalendar CSS -->
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
+  
+  <!-- FullCalendar JS -->
   <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+  
+  <!-- RRule Plugin (REQUIRED for the monthly red button to work) -->
+  <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/rrule@6.1.8/index.global.min.js'></script>
+
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background:#f9f9f9; padding:20px; }
+    /* Matches the simple Landlord Calendar style exactly */
+    body { font-family: Arial, sans-serif; background:#f9f9f9; padding:20px; }
     #calendar { max-width: 1000px; margin: auto; background:white; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1); padding:20px; }
-    .header-bar { max-width: 1000px; margin: auto; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     
     .back-btn {
-      display: inline-block;
-      padding: 8px 15px;
-      background-color: #0077cc;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: 600;
-      transition: background-color 0.2s;
+        text-decoration:none; 
+        background:#0077cc; 
+        color:white; 
+        padding:8px 15px; 
+        border-radius:6px; 
+        font-weight:600;
     }
-    .back-btn:hover {
-      background-color: #005fa3;
-    }
+    .back-btn:hover { background:#005fa3; }
   </style>
 </head>
 <body>
- <div class="header-bar">
+ <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
   <h2>📅 My Calendar</h2>
   <a href="../../dashboard.php" class="back-btn">⬅ Back to Dashboard</a>
  </div>
 
- <div id='calendar'>
-   <script>
+ <div id='calendar'></div>
+
+ <script>
    document.addEventListener('DOMContentLoaded', function() {
      var calendarEl = document.getElementById('calendar');
      var events = <?php echo json_encode($events); ?>; 
@@ -171,16 +114,12 @@ if ($tenantID) {
        initialView: 'dayGridMonth',
        height: 700,
        events: events,
-       headerToolbar: {
-         left: 'prev,next today',
-         center: 'title',
-         right: 'dayGridMonth,timeGridWeek,listWeek'
-       }
+       // Ensure the red event stacks nicely
+       eventDisplay: 'block' 
      });
      calendar.render();
    });
-   </script>
+ </script>
 
- </div>
 </body>
 </html>
